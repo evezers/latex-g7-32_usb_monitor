@@ -1,6 +1,64 @@
 \chapter{Экспериментальный раздел}
 \label{cha:research}
 
+\section{Практическая}
+
+Проверка:
+
+
+\begin{algorithm}\label{algo:ProclivityPro
+p2}
+\caption{Graph}
+\begin{algorithmic}
+  \Input
+  \Desc{T}{matrix of measurements}
+  \EndInput
+  \Output
+  \Desc{$\hat X$}{matrix of graph signals}
+  \Desc{$\hat W$}{matrix of outliers}
+  \EndOutput
+\end{algorithmic}
+\end{algorithm}
+
+
+\begin{tikzpicture}
+    \matrix (m) [
+        matrix of nodes,
+        nodes in empty cells,
+        nodes = {
+            text height=2ex, text depth=0.5ex,
+            inner sep=1mm, outer sep=0mm,
+        },
+        row sep = 0mm, column sep = 7mm,
+        column 1/.style = {nodes={align=right, anchor=south east}},
+        column 2/.style = {nodes={align=center, anchor=south, text width=18ex}}, % change width of block here
+        column 3/.style = {nodes={align=left, anchor=south west}},
+    ] {
+    clk             &                   &   ctrl\_tready    \\
+    rst             &                   &   output\_tvalid  \\
+    input\_tvalid   &                   &   output\_tlast   \\
+    input\_tdata    &   conv\_encoderjk &                   \\
+    input\_tlast    &                   &   output\_tdata   \\
+                    &                   &   test1           \\
+    ctrl\_tvalid    &                   &                   \\
+    ctrl\_tvalid    &                   &                   \\
+    ctrl\_tvalid    &                   &                   \\
+    ctrl\_tvalid    &                   &                   \\
+    ctrl\_tvalid    &                   &   jjjjj           \\
+    };
+    \scoped[on background layer]
+        \node (enc)  [draw, rounded corners, semithick, fill=gray!10,
+                      inner sep = 0mm, outer sep= 0mm,
+                      fit=(m-1-2) (m-11-2)] {};
+    \foreach    \i in {1,...,5,7}
+        \draw[-{Triangle[angle=60:2pt 4]}]    (m-\i-1) -- (m-\i-2);
+    \foreach    \i in {1,...,3,5}
+        \draw[-{Triangle[angle=60:2pt 4]}]    (m-\i-2) -- (m-\i-3);
+    \foreach    \i in {6}
+        \draw[{Stealth[scale=2]}-]    (m-\i-2) -- (m-\i-3);
+\end{tikzpicture}
+
+
 Математическая формула может встречаться в тексте: $E = mc^2$. Для больших формул следует использовать окружение \verb|equation|:
 \begin{equation}\label{eq:f1}
     E = mc^2.
