@@ -1,0 +1,58 @@
+\chapter{Технологический раздел}
+\label{cha:impl}
+
+В данном разделе описано изготовление и требование всячины. Кстати,
+в Latex нужно эскейпить подчёркивание (писать <<\verb|some\_function|>> для \Code{some\_function}).
+
+\ifPDFTeX
+% TODO: сделать рабочее решение для листингов c русским текстом в pdflatex
+\else
+
+Для вставки кода есть пакет \texttt{minted}. Он хорош всем кроме: необходимости Python (есть во всех нормальных (нет, Windows, я не про тебя) ОС) и Pygments и того, что нормально работает лишь в \XeLaTeX.
+
+\ifdefined\NoMinted
+Но к сожалению, у вас, по-видимому, не установлен Python или pygmentize.
+\else
+Можно пользоваться расширенным BFN:
+
+\begin{listing}[H]
+\begin{ebnfcode}
+ letter = "A" | "B" | "C" | "D" | "E" | "F" | "G"
+       | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+       | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+       | "V" | "W" | "X" | "Y" | "Z" ;
+digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+symbol = "[" | "]" | "{" | "}" | "(" | ")" | "<" | ">"
+       | "'" | '"' | "=" | "|" | "." | "," | ";" ;
+character = letter | digit | symbol | "_" ;
+ 
+identifier = letter , { letter | digit | "_" } ;
+terminal = "'" , character , { character } , "'" 
+         | '"' , character , { character } , '"' ;
+ 
+lhs = identifier ;
+rhs = identifier
+     | terminal
+     | "[" , rhs , "]"
+     | "{" , rhs , "}"
+     | "(" , rhs , ")"
+     | rhs , "|" , rhs
+     | rhs , "," , rhs ;
+ 
+rule = lhs , "=" , rhs , ";" ;
+grammar = { rule } ;
+\end{ebnfcode}
+\caption{EBNF определённый через EBNF}
+\label{lst:ebnf}
+\end{listing}
+
+А вот в листинге \ref{lst:c} на языке C работают русские комменты. Спасибо Pygments и Minted за это.
+
+\begin{listing}[H]
+\cfile{res/code/test.c}
+\caption{Пример — test.c} 
+\end{listing}
+\label{lst:c}
+
+\fi
+\fi

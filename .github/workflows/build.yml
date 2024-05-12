@@ -1,0 +1,121 @@
+name: Build
+
+env:
+  DOCKER_IMAGE: ghcr.io/afaikiac/latex-g7-32:overleaf
+  DOCKER_WORKDIR: /doc
+
+  RUN_LATEXMK_XELATEX: true
+  LATEXMK_XELATEX_JOBNAME: ${{ github.event.repository.name }}-xelatex
+
+  RUN_LATEXMK_PDFLATEX: true
+  LATEXMK_PDFLATEX_JOBNAME: ${{ github.event.repository.name }}-pdflatex
+
+  CREATE_OVERLEAF_ARCHIVE: true
+  OVERLEAF_ARCHIVE: ${{ github.event.repository.name }}-overleaf.zip
+  OVERLEAF_SOURCES: |
+    res \
+    lib \
+    tex \
+    .latexmkrc \
+    main.tex
+
+  ARTIFACT_NAME: artifact
+  RELEASE_BODY: |
+    Release from commit: ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build:
+    name: Build PDF
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+
+    - name: Build PDF with XeLaTeX
+      if: ${{ env.RUN_LATEXMK_XELATEX == 'true' }}
+      run: |
+        docker run --net=none -v "$(pwd)":"${{ env.DOCKER_WORKDIR }}" ${{ env.DOCKER_IMAGE }} \
+          latexmk -pdfxe -jobname="${{ env.LATEXMK_XELATEX_JOBNAME }}"
+
+    - name: Build PDF with pdfLaTeX
+      if: ${{ env.RUN_LATEXMK_PDFLATEX == 'true' }}
+      run: |
+        docker run --net=none -v "$(pwd)":"${{ env.DOCKER_WORKDIR }}" ${{ env.DOCKER_IMAGE }} \
+          latexmk -pdf -jobname="${{ env.LATEXMK_PDFLATEX_JOBNAME }}"
+
+    - name: Archive Built PDF
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+        path: |
+          ${{ env.LATEXMK_PDFLATEX_JOBNAME }}.pdf
+          ${{ env.LATEXMK_XELATEX_JOBNAME }}.pdf
+        if-no-files-found: ignore
+
+  release:
+    name: Create GitHub Release
+    if: ${{ github.ref_name == github.event.repository.default_branch }}
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set Tag Name
+      id: tag
+      run: |
+        tag=v$(date +%Y%m%d.%H%M%S)
+        echo "tag=$tag" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        tag="${{ steps.tag.outputs.tag }}"
+        body="${{ env.RELEASE_BODY }}"
+        gh release create --draft "$tag" --title "$tag" --notes "$body"
+
+    - name: Download All Workflow Run Artifacts
+      if: ${{ env.RUN_LATEXMK_PDFLATEX == 'true' || env.RUN_LATEXMK_XELATEX == 'true' }}
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+        path: artifacts
+
+    - name: Upload Built PDF with XeLaTeX
+      if: ${{ env.RUN_LATEXMK_XELATEX == 'true' }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_REPO: ${{ github.repository }}
+      working-directory: artifacts
+      run: gh release upload "${{ steps.tag.outputs.tag }}" "${{ env.LATEXMK_XELATEX_JOBNAME }}.pdf"
+
+    - name: Upload Built PDF with pdfLaTeX
+      if: ${{ env.RUN_LATEXMK_PDFLATEX == 'true' }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_REPO: ${{ github.repository }}
+      working-directory: artifacts
+      run: gh release upload "${{ steps.tag.outputs.tag }}" "${{ env.LATEXMK_PDFLATEX_JOBNAME }}.pdf"
+
+    - name: Checkout Code
+      if: ${{ env.CREATE_OVERLEAF_ARCHIVE == 'true' }}
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+
+    - name: Upload Archive for Overleaf
+      if: ${{ env.CREATE_OVERLEAF_ARCHIVE == 'true' }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        zip -r ${{ env.OVERLEAF_ARCHIVE }} ${{ env.OVERLEAF_SOURCES }}
+        gh release upload "${{ steps.tag.outputs.tag }}" "${{ env.OVERLEAF_ARCHIVE }}"
